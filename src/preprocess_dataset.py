@@ -12,8 +12,8 @@ from tqdm.std import tqdm
 import numpy as np
 
 
-FONDO = 1
-RAIZ = 2
+BACKGROUND = 1
+SEGMENTED_CLASS = 2
 
 def get_name(file):
     hash = hashlib.sha256(file.encode("utf-8")).hexdigest()
@@ -23,9 +23,9 @@ def get_name(file):
 
 def convert_labelled_images(path):
     """
-    Este código convierte las imágenes etiquetadas en imágenes de entrenamiento:
-        * Imágenes en escala de grises
-        * Cada pixel será el valor de la etiqueta a partir del valor 1 (Fondo), 2 (Clase 1), ...
+    This code converts binary labelled (Black is the blakground/White is the class you want to segment) images in images ready for training:
+        * Grayscales images
+        * Each pixel will be the value of the label starting from 1 (Background), 2 (Class 1), ...
     @param path Path of the labelled images
     """
     files = glob.glob(path + "/*")
@@ -55,27 +55,15 @@ def get_relabelled_image(img):
     # Hacemos que se pueda escribir en la matriz
     mat.setflags(write=1)
     # Tenemos dos etiquetas
-    mat[np.where(mat < 200)] = FONDO
-    mat[np.where(mat >= 200)] = RAIZ
+    mat[np.where(mat < 200)] = BACKGROUND
+    mat[np.where(mat >= 200)] = SEGMENTED_CLASS
 
     # Devolvemos la imagen tipo PIL
     return Image.fromarray(mat)
 
 def execute_augment_process(augmentor, augmentor_image):
     """
-    Private method. Used to pass an image through the current pipeline,
-    and return the augmented image.
-
-    The returned image can then either be saved to disk or simply passed
-    back to the user. Currently this is fixed to True, as Augmentor
-    has only been implemented to save to disk at present.
-
-    :param augmentor_image: The image to pass through the pipeline.
-    :param save_to_disk: Whether to save the image to disk. Currently
-     fixed to true.
-    :type augmentor_image: :class:`ImageUtilities.AugmentorImage`
-    :type save_to_disk: Boolean
-    :return: The augmented image.
+    This method is used to generated augmented synthetic data for your dataset
     """
 
     images = []
@@ -103,27 +91,26 @@ def execute_augment_process(augmentor, augmentor_image):
 
 def preprocess(args):
     # First of all convert the labelled images
-    #convert_labelled_images(args.label_dir)
     random.seed(time.time())
     output_original = join(args.output_dir, "imgs")
     output_label = join(args.output_dir, "label")
     os.makedirs(output_original, exist_ok=True)
     os.makedirs(output_label, exist_ok=True)
 
+    # Create the aufmentor pipeline 
     p = Augmentor.Pipeline(args.source_dir)
     p.ground_truth(args.label_dir) #Comprobar los nombres de los ficheros (nombre + extensión)
     p.random_distortion(1.0, 5, 5, 2)
     augmentor_images = [random.choice(p.augmentor_images) for _ in range(args.samples)]
     with tqdm(total=len(augmentor_images), desc="Executing Pipeline", unit=" Samples") as progress_bar:
         for augmentor_image in augmentor_images:
+            # Obtain the augmented image
             img, images = execute_augment_process(p, augmentor_image)
-            #print("Len" + str(len(images)))
-            #print(augmentor_image.image_file_name)
             new_file_name = get_name(augmentor_image.image_file_name)
             new_original = join(args.output_dir, "imgs", new_file_name)
             new_label = join(args.output_dir, "label", new_file_name.replace(".jpg", ".png"))
             images[0].save(new_original)
-            # Convertimos a imagen a escala de grises
+            # Convert to grayscale image
             bw_img = ImageOps.grayscale(images[1])
             bw_img = get_relabelled_image(bw_img)
             bw_img.save(new_label)
@@ -142,8 +129,6 @@ if __name__ == "__main__":
                         help='Directory containing the output image files')
     parser.add_argument('--samples', required=False, type=int, default=1000,
                         help='Number of samples to generate. Default 1000.')
-    parser.add_argument('--val_percentage', required=False, type=float, default=0.2,
-                        help='Validation percentage used for generating final dataset.')
     args = parser.parse_args()
 
     preprocess(args)
