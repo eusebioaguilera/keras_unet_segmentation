@@ -52,13 +52,14 @@ def convert_labelled_images(path):
 
 def get_relabelled_image(img):
     mat = np.array(img)
-    # Hacemos que se pueda escribir en la matriz
+    # Make mat writable
+    # This line of code may fail if an older version numpy is used
     mat.setflags(write=1)
-    # Tenemos dos etiquetas
+    # Two labels
     mat[np.where(mat < 200)] = BACKGROUND
     mat[np.where(mat >= 200)] = SEGMENTED_CLASS
 
-    # Devolvemos la imagen tipo PIL
+    # Return pillow type image
     return Image.fromarray(mat)
 
 def execute_augment_process(augmentor, augmentor_image):
@@ -71,7 +72,6 @@ def execute_augment_process(augmentor, augmentor_image):
     if augmentor_image.image_path is not None:
         images.append(Image.open(augmentor_image.image_path))
 
-    # What if they are array data?
     if augmentor_image.pil_images is not None:
         images.append(augmentor_image.pil_images)
 
@@ -97,7 +97,7 @@ def preprocess(args):
     os.makedirs(output_original, exist_ok=True)
     os.makedirs(output_label, exist_ok=True)
 
-    # Create the aufmentor pipeline 
+    # Create the augmentor pipeline 
     p = Augmentor.Pipeline(args.source_dir)
     p.ground_truth(args.label_dir) #Comprobar los nombres de los ficheros (nombre + extensión)
     p.random_distortion(1.0, 5, 5, 2)

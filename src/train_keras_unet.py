@@ -1,22 +1,14 @@
-
-"""
-## Prepare paths of input images and target segmentation masks
-"""
-
 import os
 import argparse
 import random
 
-"""
-## Prepare `Sequence` class to load & vectorize batches of data
-"""
 
 from tensorflow import keras
 import numpy as np
 from tensorflow.keras.preprocessing.image import load_img
 
 """
-## Prepare U-Net Xception-style model
+    U-Net model
 """
 
 from tensorflow.keras import layers
@@ -141,7 +133,6 @@ def train(args):
         ]
     )
 
-    # Free up RAM in case the model definition cells were run multiple times
     keras.backend.clear_session()
 
     # Build model
@@ -152,12 +143,11 @@ def train(args):
         model.summary()
 
     """
-    ## Set aside a validation split
+        Set the validation split using the same random number 
     """
-
     randomValue = random.randint(0, 10000)
 
-    # Split our img paths into a training and a validation set
+    # Split into a training and a validation set
     val_samples = int(len(input_img_paths) * args.val_size)
     random.Random(randomValue).shuffle(input_img_paths)
     random.Random(randomValue).shuffle(target_img_paths)
@@ -179,11 +169,10 @@ def train(args):
     """
 
     # Configure the model for training.
-    # We use the "sparse" version of categorical_crossentropy
-    # because our target data is integers.
     if args.debug:
         logging.debug("Compiling model ...")
 
+    # Define the solver to use
     if args.solver == 'Adagrad':
         opt = keras.optimizers.Adagrad(learning_rate=args.learning_rate)
     elif args.solver == 'Adadelta':
@@ -195,19 +184,24 @@ def train(args):
     else:
         opt = keras.optimizers.Adam(learning_rate=args.learning_rate)
 
+    # We use the "sparse" version of categorical_crossentropy
+    # because our target data is integers.
     model.compile(optimizer=opt, loss="sparse_categorical_crossentropy")
 
+    # Define the callbacks and save only the best model
     callbacks = [
         keras.callbacks.ModelCheckpoint( args.model_file + ".h5", save_best_only=True)
     ]
 
     if args.debug:
         logging.debug("Training model ...")
+
     # Train the model, doing validation at the end of each epoch.
     model.fit(train_gen, epochs=args.epochs, validation_data=val_gen, callbacks=callbacks)
 
 
 if __name__ == "__main__":
+    # Define the arguments of the script
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--images_dir', required=True, help='Train directory.')
     parser.add_argument('--labels_dir', required=True,
@@ -222,13 +216,9 @@ if __name__ == "__main__":
                         help='Learning rate parameter for Adam optimizer (Default: 0.0001)')
     parser.add_argument('--batch_size', required=False, type=int, default=32,
                         help='Batch size (Default: 32)')
-    parser.add_argument('--convert_to_onnx', default=False, action='store_true',
-                        help='Convert the trained model to ONNX format instead of KERAS format')
     parser.add_argument('--model_file', required=False, type=str, default="classification_model",
                         help='File name to save the trained model')
     parser.add_argument('--debug', required=False, action='store_true',
                         help='Active logging for debug mode')
-    parser.add_argument('--load_weights', required=False, type=str, default="",
-                        help='File containing previous weights to load for training again from this point')
     args = parser.parse_args()
     train(args)
