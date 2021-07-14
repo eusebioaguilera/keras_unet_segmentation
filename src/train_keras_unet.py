@@ -2,7 +2,6 @@ import os
 import argparse
 import random
 
-
 from tensorflow import keras
 import numpy as np
 from tensorflow.keras.preprocessing.image import load_img
@@ -213,15 +212,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--images_dir', required=True, help='Train directory.')
     parser.add_argument('--labels_dir', required=True,
-                        help='Validation directory.')
+                        help='Directory that contains labelled images.')
     parser.add_argument('--solver', required=False, choices=['Adam', 'Adadelta', 'SGD', 'RMSprop', 'Adagrad'], default='Adam',
-                        help='Number of epochs to train (Default: 50)')
+                        help='Solver used to train (Default: Adam)')
     parser.add_argument('--epochs', required=False, type=int, default=50,
                         help='Number of epochs to train (Default: 50)')
     parser.add_argument('--val_size', required=False, type=float, default=0.2,
-                        help='Number of epochs to train (Default: 0.2)')
+                        help='Validation size used to train (Default: 0.2)')
     parser.add_argument('--learning_rate', required=False, type=float, default=0.0001,
-                        help='Learning rate parameter for Adam optimizer (Default: 0.0001)')
+                        help='Learning rate parameter for the optimizer (Default: 0.0001)')
     parser.add_argument('--batch_size', required=False, type=int, default=32,
                         help='Batch size (Default: 32)')
     parser.add_argument('--model_file', required=False, type=str, default="classification_model",
