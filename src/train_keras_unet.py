@@ -17,6 +17,7 @@ import logging
 
 from config import img_size, num_classes
 
+
 class SegClass(keras.utils.Sequence):
     """
     This class contains the definition for image loading during the training process 
@@ -36,9 +37,10 @@ class SegClass(keras.utils.Sequence):
         This method returns the tuple images (input, target) based on the idx of the image batch
         """
         i = idx * self.batch_size
-        batch_input_img_paths = self.input_img_paths[i : i + self.batch_size]
-        batch_target_img_paths = self.target_img_paths[i : i + self.batch_size]
-        x = np.zeros((self.batch_size,) + self.img_size + (3,), dtype="float32")
+        batch_input_img_paths = self.input_img_paths[i: i + self.batch_size]
+        batch_target_img_paths = self.target_img_paths[i: i + self.batch_size]
+        x = np.zeros((self.batch_size,) +
+                     self.img_size + (3,), dtype="float32")
         for j, path in enumerate(batch_input_img_paths):
             # Loads the image and pass it
             img = load_img(path, target_size=self.img_size)
@@ -46,7 +48,8 @@ class SegClass(keras.utils.Sequence):
         y = np.zeros((self.batch_size,) + self.img_size + (1,), dtype="uint8")
         for j, path in enumerate(batch_target_img_paths):
             # Load the image and process before pass it
-            img = load_img(path, target_size=self.img_size, color_mode="grayscale")
+            img = load_img(path, target_size=self.img_size,
+                           color_mode="grayscale")
             y[j] = np.expand_dims(img, 2)
             # Labels starts from 1 so subtract one to make start from 0
             y[j] -= 1
@@ -80,8 +83,8 @@ def get_model(img_size, num_classes):
         res_layer = layers.Conv2D(filters, 1, strides=2, padding="same")(
             pre_block_activation
         )
-        x = layers.add([x, res_layer]) 
-        pre_block_activation = x  
+        x = layers.add([x, res_layer])
+        pre_block_activation = x
 
     ### [Second half of the network: upsampling inputs] ###
 
@@ -103,13 +106,15 @@ def get_model(img_size, num_classes):
         pre_block_activation = x  # Set aside next residual
 
     # Pixel classification layer
-    outputs = layers.Conv2D(num_classes, 3, activation="softmax", padding="same")(x)
+    outputs = layers.Conv2D(
+        num_classes, 3, activation="softmax", padding="same")(x)
 
     # Creates the keras model
     model = keras.Model(inputs, outputs)
 
     # Returns the model
     return model
+
 
 def train(args):
     logging.basicConfig()
@@ -162,7 +167,8 @@ def train(args):
     train_gen = SegClass(
         args.batch_size, img_size, train_input_img_paths, train_target_img_paths
     )
-    val_gen = SegClass(args.batch_size, img_size, val_input_img_paths, val_target_img_paths)
+    val_gen = SegClass(args.batch_size, img_size,
+                       val_input_img_paths, val_target_img_paths)
 
     """
     ## Train the model
@@ -190,14 +196,16 @@ def train(args):
 
     # Define the callbacks and save only the best model
     callbacks = [
-        keras.callbacks.ModelCheckpoint( args.model_file + ".h5", save_best_only=True)
+        keras.callbacks.ModelCheckpoint(
+            args.model_file + ".h5", save_best_only=True)
     ]
 
     if args.debug:
         logging.debug("Training model ...")
 
     # Train the model, doing validation at the end of each epoch.
-    model.fit(train_gen, epochs=args.epochs, validation_data=val_gen, callbacks=callbacks)
+    model.fit(train_gen, epochs=args.epochs,
+              validation_data=val_gen, callbacks=callbacks)
 
 
 if __name__ == "__main__":
